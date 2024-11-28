@@ -8,45 +8,14 @@ app = FastAPI()
 def read_root():
     return {"message": "Welcome to your FastAPI app!"}
 
-# SmileDetection
 import cv2
 import torch
-import numpy as np
 from torchvision import transforms
 from PIL import Image
-from torch import nn
-
-# CNN Model Definition (should match the one used for training)
-class SmileCNN(nn.Module):
-    def __init__(self):
-        super(SmileCNN, self).__init__()
-        self.conv_layers = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-        )
-        self.fc_layers = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(64 * 12 * 12, 128),  # Assuming input size 48x48
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(128, 1),
-            nn.Sigmoid()
-        )
-
-    def forward(self, x):
-        x = self.conv_layers(x)
-        x = self.fc_layers(x)
-        return x
 
 # Load the trained model
 def load_model(model_path, device):
-    model = SmileCNN().to(device)
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    model = torch.load(model_path, map_location=device)
     model.eval()
     return model
 
