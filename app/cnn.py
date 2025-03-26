@@ -4,9 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import torch
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import Dataset, DataLoader, random_split, Subset
 from torch import nn, optim
 from torchvision import transforms
+from sklearn.model_selection import KFold
 
 # Custom Dataset for Smile Detection
 class SmileDataset(Dataset):
@@ -144,10 +145,51 @@ def plot_metrics(history, output_dir="statistics"):
 
     print(f"Plots saved in {output_dir}")
 
+# Cross-validation function
+def cross_validate_model(model, dataset, k_folds=5, num_epochs=10, batch_size=64):
+    kfold = KFold(n_splits=k_folds, shuffle=True)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    best_model = None
+    best_accuracy = 0.0
+    best_history = None
+
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    for fold, (train_idx, val_idx) in enumerate(kfold.split(dataset)):
+        print(f"Fold {fold+1}/{k_folds}")
+
+        # Split dataset into train and validation subsets
+        train_subset = Subset(dataset, train_idx)
+        val_subset = Subset(dataset, val_idx)
+
+        # DataLoaders
+        train_loader = DataLoader(train_subset, batch_size=batch_size, shuffle=True)
+        val_loader = DataLoader(val_subset, batch_size=batch_size, shuffle=False)
+
+        # Initialize model for this fold
+        model_fold = SmileCNN().to(device)
+        
+        # Train the model
+        history = train_model(model_fold, criterion, optimizer, train_loader, val_loader, device, num_epochs=num_epochs)
+
+        # Track the best model
+        val_accuracy = history["val_accuracy"][-1]
+        if val_accuracy > best_accuracy:
+            best_accuracy = val_accuracy
+            best_model = model_fold
+            best_history = history
+
+        print(f"Fold {fold+1} - Val Accuracy: {val_accuracy:.4f}")
+
+    print(f"Best Validation Accuracy: {best_accuracy:.4f}")
+    return best_model, best_history
+
 # Main Script
 def main():
     # Dataset Path
-    data_dir = "fer2013_data"
+    data_dir = "./app/fer2013_data"
 
     # Device Configuration
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -159,34 +201,46 @@ def main():
         transforms.Normalize((0.5,), (0.5,))
     ])
 
-    # Load Dataset
-    dataset = SmileDataset(data_dir, split="train", transform=transform)
+    # Load Dataset (training data)
+    train_dataset = SmileDataset(data_dir, split="train", transform=transform)
 
-    # Split Dataset
-    train_size = int(0.8 * len(dataset))
-    val_size = len(dataset) - train_size
-    train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
-
-    # DataLoaders
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
-
-    # Initialize Model, Loss, Optimizer
+    # Cross-validation
     model = SmileCNN().to(device)
-    criterion = nn.BCELoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    best_model, best_history = cross_validate_model(model, train_dataset, k_folds=5, num_epochs=10)
 
-    # Train the Model
-    history = train_model(model, criterion, optimizer, train_loader, val_loader, device, num_epochs=10)
-
-    # Save the Model
+    # Save the best model
     os.makedirs("models", exist_ok=True)
-    model_path = "models/smile_cnn.pth"
-    torch.save(model.state_dict(), model_path)
-    print(f"Model saved to {model_path}")
+    model_path = "models/smile_cnn_best.pth"
+    torch.save(best_model.state_dict(), model_path)
+    print(f"Best model saved to {model_path}")
 
-    # Plot Metrics
-    plot_metrics(history)
+    # Plot the best model's training metrics
+    plot_metrics(best_history)
+
+    # Test the best model on the test data
+    test_dataset = SmileDataset(data_dir, split="test", transform=transform)
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+
+    # Evaluate on test data
+    best_model.eval()
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for images, labels in test_loader:
+            images, labels = images.to(device), labels.to(device, dtype=torch.float32)
+            outputs = best_model(images).squeeze()
+            predicted = (outputs > 0.5).int()
+            correct += (predicted == labels.int()).sum().item()
+            total += labels.size(0)
+
+    test_accuracy = correct / total
+    print(f"Test Accuracy: {test_accuracy:.4f}")
+
+    # Optionally, save the final model
+    final_model_path = "models/final_smile_cnn.pth"
+    torch.save(best_model.state_dict(), final_model_path)
+    print(f"Final model saved to {final_model_path}")
 
 if __name__ == "__main__":
     main()
+

@@ -1,25 +1,34 @@
-from fastapi import FastAPI
-
-# Create the FastAPI app
-app = FastAPI()
-
-# Define a simple route
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to your FastAPI app!"}
-
+from fastapi import FastAPI, File, UploadFile
+from fastapi.responses import JSONResponse
+import datetime
 import cv2
 import torch
 from torchvision import transforms
 from PIL import Image
+from cnn import SmileCNN
+import numpy as np
 
-# Load the trained model
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Hilfsfunktion zum Laden eines Modells
 def load_model(model_path, device):
-    model = torch.load(model_path, map_location=device)
-    model.eval()
+    model = SmileCNN()
+    model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
     return model
 
-# Preprocess image for the CNN
+# Bildvorverarbeitung: Resizing, Tensor-Konvertierung und Normalisierung
 def preprocess_image(face):
     transform = transforms.Compose([
         transforms.Resize((48, 48)),
@@ -28,67 +37,65 @@ def preprocess_image(face):
     ])
     face_pil = Image.fromarray(face)
     face_tensor = transform(face_pil)
-    return face_tensor.unsqueeze(0)  # Add batch dimension
+    return face_tensor.unsqueeze(0)  # Batch-Dimension hinzufügen
 
-# Main function to run real-time smile detection
-def smile_detection(model_path="models/smile_cnn.pth"):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = load_model(model_path, device)
+# Setup: Modelle laden und Face-Detector initialisieren
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model1 = load_model("models/smile_cnn.pth", device)
+# model2 = load_model("models/smile_cnn2.pth", device) --> Wir müssen hier noch eins hinzufügen
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+if face_cascade.empty():
+    raise RuntimeError("Konnte Haar Cascade XML Datei nicht laden.")
 
-    # Load OpenCV face detector
-    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-    if face_cascade.empty():
-        raise RuntimeError("Failed to load Haar Cascade XML file for face detection.")
+# Funktion zur Smile-Erkennung: Es wird ein Bild (BGR) verarbeitet, das Gesicht gesucht und anhand des Modells evaluiert.
+def detect_smile(image_array, model):
+    gray = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(48, 48))
+    for (x, y, w, h) in faces:
+        face = image_array[y:y+h, x:x+w]
+        face_tensor = preprocess_image(face).to(device)
+        with torch.no_grad():
+            output = model(face_tensor).item()
+        if output > 0.5:
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            return {"smile_detected": True, "timestamp": timestamp}  # Lächeln erkannt
+    return False
 
-    # Open webcam
-    cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        raise RuntimeError("Cannot access the webcam.")
+# Endpoint für Model 1
+@app.post("/detect/model1")
+async def detect_model1(file: UploadFile = File(...)):
+    contents = await file.read()
+    np_arr = np.frombuffer(contents, np.uint8)
+    image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+    if image is None:
+        return JSONResponse({"error": "Ungültiges Bild"}, status_code=400)
+    
+    smile = detect_smile(image, model1)
+    result = {"model": "model1", "smile_detected": smile}
+    if smile:
+        print("Smile detected")
+        now = datetime.datetime.now()
+        timestamp = now.strftime("%H:%M:%S.%f")[:-3]
+        result["timestamp"] = timestamp
+    return JSONResponse(result)
 
-    print("Press 'q' to quit.")
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            print("Failed to capture frame. Exiting.")
-            break
-
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(48, 48))
-
-        for (x, y, w, h) in faces:
-            # Draw rectangle around the face
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-
-            # Crop the face
-            face = frame[y:y + h, x:x + w]
-
-            # Preprocess the face and make a prediction
-            face_tensor = preprocess_image(face).to(device)
-            with torch.no_grad():
-                output = model(face_tensor).item()
-
-            # Add text based on prediction
-            if output > 0.5:
-                cv2.putText(frame, "Smiling", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-                print("\a")  # Ping alert
-            else:
-                cv2.putText(frame, "Not Smiling", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
-
-        # Display the result
-        cv2.imshow("Smile Detector", frame)
-
-        # Break loop if 'q' is pressed
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    # Release the webcam and close all OpenCV windows
-    cap.release()
-    cv2.destroyAllWindows()
-
+# Endpoint für Model 2
+# @app.post("/detect/model2")
+# async def detect_model2(file: UploadFile = File(...)):
+#     contents = await file.read()
+#     np_arr = np.frombuffer(contents, np.uint8)
+#     image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+#     if image is None:
+#         return JSONResponse({"error": "Ungültiges Bild"}, status_code=400)
+    
+#     smile = detect_smile(image, model2)
+#     result = {"model": "model2", "smile_detected": smile}
+#     if smile:
+#         now = datetime.datetime.now()
+#         timestamp = now.strftime("%H:%M:%S.%f")[:-3]
+#         result["timestamp"] = timestamp
+#     return JSONResponse(result)
 
 if __name__ == "__main__":
     import uvicorn
-    # Run the app with uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
-    smile_detection()
-
