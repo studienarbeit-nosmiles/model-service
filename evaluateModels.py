@@ -1,35 +1,44 @@
-# nur den Klassifikationskopf neu trainieren
-
+import os
+import time
 import torch
 import torch.nn as nn
 import torchvision.models as models
 from torchvision import transforms, datasets
-from torch.utils.data import DataLoader
-from sklearn.metrics import classification_report, roc_auc_score
+from torch.utils.data import DataLoader, random_split, WeightedRandomSampler
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 import numpy as np
-import time
 
 # 1. Einstellungen
 BATCH_SIZE = 64
-NUM_CLASSES = 7  # FER2013 hat 7 Emotionen
+NUM_CLASSES = 2  # Binäre Klassifikation: laugh vs. noLaugh
 NUM_EPOCHS = 10
 LEARNING_RATE = 0.001
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+DATA_PATH = 'app/fer2013_data'  # Pfad zum Datensatz
 
 # 2. Datentransformationen
 transform = transforms.Compose([
-    transforms.Grayscale(num_output_channels=3),  # FER2013 ist ursprünglich Graustufen
-    transforms.Resize((224, 224)),  # alle Modelle erwarten 224x224
+    transforms.Grayscale(num_output_channels=3),  # Konvertiere Graustufenbilder zu 3 Kanälen
+    transforms.Resize((224, 224)),  # Einheitliche Bildgröße
     transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406],  # Standardwerte von ImageNet
+    transforms.Normalize(mean=[0.485, 0.456, 0.406],  # ImageNet-Normalisierung
                          std=[0.229, 0.224, 0.225])
 ])
 
-# 3. Dataset & DataLoader
-train_dataset = datasets.ImageFolder(root='app/fer2013_data', transform=transform)
-val_dataset = datasets.ImageFolder(root='app/fer2013_data', transform=transform)
+# 3. Dataset & DataLoader mit Berücksichtigung unbalancierter Daten
+dataset = datasets.ImageFolder(root=DATA_PATH, transform=transform)
+class_counts = np.bincount(dataset.targets)
+class_weights = 1. / torch.tensor(class_counts, dtype=torch.float)
+sample_weights = [class_weights[t] for t in dataset.targets]
 
-train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+# Aufteilen in Trainings- und Validierungsdatensätze (80% Training, 20% Validierung)
+train_size = int(0.8 * len(dataset))
+val_size = len(dataset) - train_size
+train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+
+# WeightedRandomSampler für den Training DataLoader
+train_sampler = WeightedRandomSampler(weights=sample_weights[:train_size], num_samples=train_size, replacement=True)
+train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, sampler=train_sampler)
 val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
 # 4. Modell-Loader
@@ -70,14 +79,14 @@ def get_model(model_name):
         )
     else:
         raise ValueError('Unsupported model name')
-    
+
     return model.to(DEVICE)
 
-# 5. Trainingsfunktion
+# 5. Trainingsfunktion mit Weighted Loss
 def train_model(model, model_name):
     print(f'\nTraining {model_name}...\n')
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE)
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(weight=class_weights.to(DEVICE))
 
     for epoch in range(NUM_EPOCHS):
         model.train()
@@ -103,44 +112,44 @@ def train_model(model, model_name):
         epoch_acc = 100. * correct / total
         print(f"Epoch {epoch+1}/{NUM_EPOCHS}, Loss: {epoch_loss:.4f}, Accuracy: {epoch_acc:.2f}%")
 
-# 6. Evaluation
+# 6. Evaluation mit allen gewünschten Metriken
 def evaluate_model(model):
     model.eval()
-    correct = 0
-    total = 0
     all_labels = []
     all_preds = []
     all_probs = []
 
     with torch.no_grad():
         for images, labels in val_loader:
-            images, labels = images.to(DEVICE), labels.to(DEVICE)
+            images = images.to(DEVICE)
             outputs = model(images)
             probs = torch.softmax(outputs, dim=1)
             _, predicted = outputs.max(1)
-
-            total += labels.size(0)
-            correct += predicted.eq(labels).sum().item()
 
             all_labels.extend(labels.cpu().numpy())
             all_preds.extend(predicted.cpu().numpy())
             all_probs.extend(probs.cpu().numpy())
 
-    acc = 100. * correct / total
-    print(f'Validation Accuracy: {acc:.2f}%')
-
-    print("\nClassification Report:")
-    print(classification_report(all_labels, all_preds, digits=4))
-
+    acc = accuracy_score(all_labels, all_preds)
+    precision = precision_score(all_labels, all_preds, zero_division=0)
+    recall = recall_score(all_labels, all_preds, zero_division=0)
+    f1 = f1_score(all_labels, all_preds, zero_division=0)
     try:
-        auc_score = roc_auc_score(np.eye(NUM_CLASSES)[all_labels], all_probs, multi_class='ovr')
-        print(f"AUC Score: {auc_score:.4f}")
+        auc = roc_auc_score(all_labels, [p[1] for p in all_probs])
     except Exception as e:
-        auc_score = None
+        auc = None
         print(f"AUC could not be calculated: {e}")
 
-    return acc, auc_score
+    print(f'Validation Accuracy: {acc:.4f}')
+    print(f'Precision: {precision:.4f}')
+    print(f'Recall: {recall:.4f}')
+    print(f'F1 Score: {f1:.4f}')
+    if auc is not None:
+        print(f'AUC Score: {auc:.4f}')
 
+    return acc, precision, recall, f1, auc
+
+# 7. Inferenzzeit pro Bild messen
 def measure_inference_time(model):
     model.eval()
     total_time = 0.0
@@ -156,10 +165,9 @@ def measure_inference_time(model):
             total_time += (end - start)
             total_images += images.size(0)
 
-    return total_time / total_images  # Sek. pro Bild
+    return total_time / total_images  # Sekunden pro Bild
 
-
-# 7. Hauptprogramm
+# 8. Hauptprogramm
 model_names = ['vgg16', 'resnet50', 'mobilenet_v2', 'efficientnet_b0']
 results = {}
 
@@ -167,22 +175,36 @@ for model_name in model_names:
     model = get_model(model_name)
     start = time.time()
     train_model(model, model_name)
-    acc, auc = evaluate_model(model)
+    acc, precision, recall, f1, auc = evaluate_model(model)
     inference_time = measure_inference_time(model)
     end = time.time()
 
     results[model_name] = {
         'accuracy': acc,
+        'precision': precision,
+        'recall': recall,
+        'f1_score': f1,
         'auc': auc,
         'inference_time_s': inference_time,
         'training_time_min': (end - start) / 60
     }
 
-
 print("\nErgebnisse:")
 for model_name, metrics in results.items():
     print(f"{model_name}: "
-          f"Accuracy: {metrics['accuracy']:.2f}%, "
+          f"Accuracy: {metrics['accuracy']:.4f}, "
+          f"Precision: {metrics['precision']:.4f}, "
+          f"Recall: {metrics['recall']:.4f}, "
+          f"F1 Score: {metrics['f1_score']:.4f}, "
           f"AUC: {metrics['auc']:.4f} "
           f"Inference Time: {metrics['inference_time_s']*1000:.2f} ms, "
           f"Training: {metrics['training_time_min']:.2f} min")
+
+
+'''
+Modell | Accuracy | Precision | Recall | F1 Score | AUC | Inf. Time | Training
+VGG16 | 88.38 % | 0.9188 | 0.9273 | 0.9230 | 0.9164 | 0.06 ms | 42.86 min
+ResNet50 | 81.36 % | 0.8511 | 0.9114 | 0.8802 | 0.8245 | 0.17 ms | 27.28 min
+MobileNetV2 | 74.42 % | 0.8918 | 0.7506 | 0.8151 | 0.8092 | 0.15 ms | 15.07 min
+EfficientNetB0 | 74.91 % | 0.8991 | 0.7502 | 0.8179 | 0.8229 | 0.23 ms | 17.11 min
+'''
