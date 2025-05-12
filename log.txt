@@ -1,0 +1,81 @@
+Erster lightweight test
+Epoch 1/10
+Train Loss: 0.4292 Acc: 0.7403
+Val Loss: 0.8652 Acc: 0.5212
+Epoch 2/10
+Train Loss: 0.3336 Acc: 0.8009
+Val Loss: 0.7140 Acc: 0.6342
+Epoch 3/10
+Train Loss: 0.3017 Acc: 0.8254
+Val Loss: 0.5160 Acc: 0.7719
+Epoch 4/10
+Train Loss: 0.2971 Acc: 0.8418
+Val Loss: 0.4603 Acc: 0.7975
+Epoch 5/10
+Train Loss: 0.3171 Acc: 0.8476
+Val Loss: 0.7220 Acc: 0.6866
+Epoch 6/10
+Train Loss: 0.2708 Acc: 0.8679
+Val Loss: 0.5541 Acc: 0.7803
+Epoch 7/10
+Train Loss: 0.2754 Acc: 0.8778
+Val Loss: 0.5160 Acc: 0.8120
+Epoch 8/10
+Train Loss: 0.1958 Acc: 0.9153
+Val Loss: 0.4061 Acc: 0.8537
+Epoch 9/10
+Train Loss: 0.1517 Acc: 0.9284
+Val Loss: 0.4274 Acc: 0.8380
+Epoch 10/10
+Train Loss: 0.1293 Acc: 0.9395
+Val Loss: 0.3943 Acc: 0.8537
+Beste Validierungsgenauigkeit: 0.8537
+Inferenzzeit vor Optimierung: 0.0173 Sekunden
+Inferenzzeit nach Optimierung: 0.4607 Sekunden
+
+=> Verschlechterung der Inferenzzeit...
+
+
+Train Loss: 0.4497
+Epoch 2/5
+Train Loss: 0.3860
+Epoch 3/5
+Train Loss: 0.3548
+Epoch 4/5
+Train Loss: 0.3448
+Epoch 5/5
+Train Loss: 0.3193
+Inferenzzeit vor Optimierung: 0.0205 Sekunden
+Inferenzzeit nach Optimierung: 0.2824 Sekunden
+
+
+test2
+Epoch 1/5, Train Loss: 0.2736
+Epoch 2/5, Train Loss: 0.2081
+Epoch 3/5, Train Loss: 0.1823
+Epoch 4/5, Train Loss: 0.1624
+Epoch 5/5, Train Loss: 0.1442
+Original Model - Accuracy: 0.9358, Inference Time/Image: 0.0007s
+Optimized Model - Accuracy: 0.9352, Inference Time/Image: 0.0009s
+Summary of Results:
+Train Losses: [0.2735761651277212, 0.20809143918278458, 0.18234913560014357, 0.1624426317490898, 0.14423413344233152]
+Original - Acc: 0.9358, Time/Image: 0.0007s
+Optimized - Acc: 0.9352, Time/Image: 0.0009s
+
+Analysis:
+Potential Causes and Solutions
+Overfitting:
+    Cause: The model performs well on training data but fails to generalize to unseen data.
+    Solution: Implement regularization techniques such as dropout, weight decay, and data augmentation to prevent overfitting.
+
+Data Imbalance:
+    Cause: Unequal representation of classes can lead to biased learning.
+    Solution: Ensure balanced classes or apply class weighting during training.
+
+Model Complexity:
+    Cause: VGG16 is a large model and may be too complex for your dataset.
+    Solution: Consider using a more lightweight architecture like MobileNet or ResNet for faster inference and potentially better generalization. 
+
+Optimization Techniques:
+    Cause: Certain optimizations may not be effective or compatible with your current setup.
+    Solution: Evaluate the impact of each optimization technique individually to identify which ones contribute positively to performance.
