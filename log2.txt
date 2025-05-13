@@ -1,0 +1,89 @@
+Training vgg11...
+
+Epoch 1/10, Loss: 0.4659, Accuracy: 83.40%
+Epoch 2/10, Loss: 0.2791, Accuracy: 88.91%
+Epoch 3/10, Loss: 0.2336, Accuracy: 91.38%
+Epoch 4/10, Loss: 0.2021, Accuracy: 92.93%
+Epoch 5/10, Loss: 0.2116, Accuracy: 92.87%
+Epoch 6/10, Loss: 0.1891, Accuracy: 93.91%
+Epoch 7/10, Loss: 0.1723, Accuracy: 94.27%
+Epoch 8/10, Loss: 0.1449, Accuracy: 95.43%
+Epoch 9/10, Loss: 0.1469, Accuracy: 95.42%
+Epoch 10/10, Loss: 0.1703, Accuracy: 95.08%
+Validation Accuracy: 0.9012
+Precision: 0.9147
+Recall: 0.9577
+F1 Score: 0.9357
+AUC Score: 0.9358
+C:\Users\Jerem\Documents\DHBW\NoSmiles\model-service\.venv\Lib\site-packages\torchvision\models\_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+C:\Users\Jerem\Documents\DHBW\NoSmiles\model-service\.venv\Lib\site-packages\torchvision\models\_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=ResNet50_Weights.IMAGENET1K_V1`. You can also use `weights=ResNet50_Weights.DEFAULT` to get the most up-to-date weights.     
+  warnings.warn(msg)
+
+Training resnet50...
+
+Epoch 1/10, Loss: 0.5990, Accuracy: 67.67%
+Epoch 2/10, Loss: 0.5570, Accuracy: 72.46%
+Epoch 3/10, Loss: 0.5429, Accuracy: 72.90%
+Epoch 4/10, Loss: 0.5382, Accuracy: 73.69%
+Epoch 5/10, Loss: 0.5283, Accuracy: 74.03%
+Epoch 6/10, Loss: 0.5308, Accuracy: 73.78%
+Epoch 7/10, Loss: 0.5100, Accuracy: 75.73%
+Epoch 8/10, Loss: 0.5288, Accuracy: 74.28%
+Epoch 9/10, Loss: 0.5059, Accuracy: 75.11%
+Epoch 10/10, Loss: 0.5027, Accuracy: 75.85%
+Validation Accuracy: 0.7170
+Precision: 0.9111
+Recall: 0.6903
+F1 Score: 0.7855
+AUC Score: 0.8281
+C:\Users\Jerem\Documents\DHBW\NoSmiles\model-service\.venv\Lib\site-packages\torchvision\models\_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+C:\Users\Jerem\Documents\DHBW\NoSmiles\model-service\.venv\Lib\site-packages\torchvision\models\_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=MobileNet_V2_Weights.IMAGENET1K_V1`. You can also use `weights=MobileNet_V2_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+
+Training mobilenet_v2...
+
+Epoch 1/10, Loss: 0.5876, Accuracy: 68.98%
+Epoch 2/10, Loss: 0.5642, Accuracy: 71.74%
+Epoch 3/10, Loss: 0.5686, Accuracy: 71.06%
+Epoch 4/10, Loss: 0.5581, Accuracy: 72.14%
+Epoch 5/10, Loss: 0.5618, Accuracy: 71.39%
+Epoch 6/10, Loss: 0.5599, Accuracy: 72.02%
+Epoch 7/10, Loss: 0.5560, Accuracy: 72.13%
+Epoch 8/10, Loss: 0.5605, Accuracy: 71.83%
+Epoch 9/10, Loss: 0.5533, Accuracy: 73.03%
+Epoch 10/10, Loss: 0.5572, Accuracy: 72.32%
+Validation Accuracy: 0.7282
+Precision: 0.8995
+Recall: 0.7180
+F1 Score: 0.7986
+AUC Score: 0.8172
+C:\Users\Jerem\Documents\DHBW\NoSmiles\model-service\.venv\Lib\site-packages\torchvision\models\_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+C:\Users\Jerem\Documents\DHBW\NoSmiles\model-service\.venv\Lib\site-packages\torchvision\models\_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=EfficientNet_B0_Weights.IMAGENET1K_V1`. You can also use `weights=EfficientNet_B0_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+
+Training efficientnet_b0...
+
+Epoch 1/10, Loss: 0.5781, Accuracy: 69.22%
+Epoch 2/10, Loss: 0.5430, Accuracy: 72.40%
+Epoch 3/10, Loss: 0.5357, Accuracy: 73.31%
+Epoch 4/10, Loss: 0.5388, Accuracy: 73.15%
+Epoch 5/10, Loss: 0.5370, Accuracy: 72.94%
+Epoch 6/10, Loss: 0.5319, Accuracy: 74.23%
+Epoch 7/10, Loss: 0.5345, Accuracy: 73.66%
+Epoch 8/10, Loss: 0.5354, Accuracy: 73.33%
+Epoch 9/10, Loss: 0.5358, Accuracy: 73.47%
+Epoch 10/10, Loss: 0.5363, Accuracy: 73.29%
+Validation Accuracy: 0.7468
+Precision: 0.9046
+Recall: 0.7408
+F1 Score: 0.8145
+AUC Score: 0.8325
+
+Ergebnisse:
+vgg11: Accuracy: 0.9012, Precision: 0.9147, Recall: 0.9577, F1 Score: 0.9357, AUC: 0.9358 Inference Time: 3.31 ms, Training: 28.41 min       
+resnet50: Accuracy: 0.7170, Precision: 0.9111, Recall: 0.6903, F1 Score: 0.7855, AUC: 0.8281 Inference Time: 3.72 ms, Training: 27.92 min    
+mobilenet_v2: Accuracy: 0.7282, Precision: 0.8995, Recall: 0.7180, F1 Score: 0.7986, AUC: 0.8172 Inference Time: 1.42 ms, Training: 14.99 min
+efficientnet_b0: Accuracy: 0.7468, Precision: 0.9046, Recall: 0.7408, F1 Score: 0.8145, AUC: 0.8325 Inference Time: 1.85 ms, Training: 17.72 min

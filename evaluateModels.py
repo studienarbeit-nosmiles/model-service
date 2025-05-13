@@ -158,8 +158,13 @@ def measure_inference_time(model):
     with torch.no_grad():
         for images, _ in val_loader:
             images = images.to(DEVICE)
+
+            torch.cuda.synchronize()
             start = time.time()
+
             _ = model(images)
+
+            torch.cuda.synchronize()
             end = time.time()
 
             total_time += (end - start)
@@ -168,7 +173,7 @@ def measure_inference_time(model):
     return total_time / total_images  # Sekunden pro Bild
 
 # 8. Hauptprogramm
-model_names = ['vgg11'] #, 'resnet50', 'mobilenet_v2', 'efficientnet_b0']
+model_names = ['vgg11', 'resnet50', 'mobilenet_v2', 'efficientnet_b0']
 results = {}
 
 for model_name in model_names:
