@@ -43,8 +43,8 @@ val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
 # 4. Modell-Loader
 def get_model(model_name):
-    if model_name == 'vgg16':
-        model = models.vgg16(pretrained=True)
+    if model_name == 'vgg11':
+        model = models.vgg11(pretrained=True)
         for param in model.features.parameters():
             param.requires_grad = False
         model.classifier = nn.Sequential(
@@ -168,7 +168,7 @@ def measure_inference_time(model):
     return total_time / total_images  # Sekunden pro Bild
 
 # 8. Hauptprogramm
-model_names = ['vgg16', 'resnet50', 'mobilenet_v2', 'efficientnet_b0']
+model_names = ['vgg11'] #, 'resnet50', 'mobilenet_v2', 'efficientnet_b0']
 results = {}
 
 for model_name in model_names:
@@ -207,4 +207,26 @@ VGG16 | 88.38 % | 0.9188 | 0.9273 | 0.9230 | 0.9164 | 0.06 ms | 42.86 min
 ResNet50 | 81.36 % | 0.8511 | 0.9114 | 0.8802 | 0.8245 | 0.17 ms | 27.28 min
 MobileNetV2 | 74.42 % | 0.8918 | 0.7506 | 0.8151 | 0.8092 | 0.15 ms | 15.07 min
 EfficientNetB0 | 74.91 % | 0.8991 | 0.7502 | 0.8179 | 0.8229 | 0.23 ms | 17.11 min
+
+
+Training vgg11...
+
+Epoch 1/10, Loss: 0.4917, Accuracy: 83.60%
+Epoch 2/10, Loss: 0.2846, Accuracy: 88.85%
+Epoch 3/10, Loss: 0.2401, Accuracy: 91.32%
+Epoch 4/10, Loss: 0.2011, Accuracy: 92.99%
+Epoch 5/10, Loss: 0.2068, Accuracy: 93.20%
+Epoch 6/10, Loss: 0.1974, Accuracy: 93.61%
+Epoch 7/10, Loss: 0.1583, Accuracy: 95.04%
+Epoch 8/10, Loss: 0.1629, Accuracy: 94.94%
+Epoch 9/10, Loss: 0.1585, Accuracy: 95.40%
+Epoch 10/10, Loss: 0.1618, Accuracy: 95.55%
+Validation Accuracy: 0.8949
+Precision: 0.9398
+Recall: 0.9197
+F1 Score: 0.9297
+AUC Score: 0.9316
+
+Ergebnisse:
+vgg11: Accuracy: 0.8949, Precision: 0.9398, Recall: 0.9197, F1 Score: 0.9297, AUC: 0.9316 Inference Time: 0.04 ms, Training: 27.84 min
 '''
