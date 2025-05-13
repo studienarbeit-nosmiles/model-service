@@ -56,18 +56,20 @@ def get_model(model_name):
             nn.Dropout(0.5),
             nn.Linear(4096, NUM_CLASSES)
         )
-    elif model_name == 'resnet50':
-        model = models.resnet50(pretrained=True)
+    elif model_name == 'resnet18':
+        model = models.resnet18(pretrained=True)
         for param in model.parameters():
             param.requires_grad = False
         model.fc = nn.Linear(model.fc.in_features, NUM_CLASSES)
-    elif model_name == 'mobilenet_v2':
-        model = models.mobilenet_v2(pretrained=True)
+    elif model_name == 'mobilenet_v3_small':
+        model = models.mobilenet_v3_small(pretrained=True)
         for param in model.features.parameters():
             param.requires_grad = False
         model.classifier = nn.Sequential(
-            nn.Dropout(0.2),
-            nn.Linear(model.last_channel, NUM_CLASSES)
+            nn.Linear(model.classifier[0].in_features, 1024),
+            nn.Hardswish(inplace=True),
+            nn.Dropout(p=0.2, inplace=True),
+            nn.Linear(1024, NUM_CLASSES)
         )
     elif model_name == 'efficientnet_b0':
         model = models.efficientnet_b0(pretrained=True)
@@ -173,7 +175,7 @@ def measure_inference_time(model):
     return total_time / total_images  # Sekunden pro Bild
 
 # 8. Hauptprogramm
-model_names = ['vgg11', 'resnet50', 'mobilenet_v2', 'efficientnet_b0']
+model_names = ['resnet18', 'mobilenet_v3_small'] #['vgg11', 'resnet50', 'mobilenet_v2', 'efficientnet_b0']
 results = {}
 
 for model_name in model_names:
