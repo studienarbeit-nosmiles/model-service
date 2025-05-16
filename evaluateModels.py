@@ -175,7 +175,7 @@ def measure_inference_time(model):
     return total_time / total_images  # Sekunden pro Bild
 
 # 8. Hauptprogramm
-model_names = ['resnet18', 'mobilenet_v3_small'] #['vgg11', 'resnet50', 'mobilenet_v2', 'efficientnet_b0']
+model_names = ['mobilenet_v3_small'] #['resnet18', 'vgg11', 'resnet50', 'mobilenet_v2', 'efficientnet_b0']
 results = {}
 
 for model_name in model_names:
